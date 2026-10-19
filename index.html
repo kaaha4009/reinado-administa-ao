@@ -1,1 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reinado de Mulambo | Administrativo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #10110e;
+      color: #f5f2e9;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      padding: 25px 20px;
+      background: #191c15;
+      border-bottom: 2px solid #75894d;
+    }
+    header h1 { margin: 0 0 8px; color: #a9c77a; }
+    header p { margin: 0; color: #c5c5b8; }
+    main { max-width: 1000px; margin: auto; padding: 20px; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .card, section {
+      background: #1b1e18;
+      border: 1px solid #343a2c;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+    .card span { color: #c5c5b8; font-size: 14px; }
+    .card h2 { color: #a9c77a; margin-bottom: 0; }
+    h3 { color: #a9c77a; margin-top: 0; }
+    label { display: block; margin: 12px 0 6px; }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 7px;
+      font-size: 15px;
+    }
+    input, select {
+      background: #10110e;
+      border: 1px solid #515846;
+      color: white;
+    }
+    button {
+      margin-top: 15px;
+      background: #819957;
+      color: #10110e;
+      border: 0;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .consulta {
+      padding: 12px 0;
+      border-bottom: 1px solid #343a2c;
+      overflow-wrap: anywhere;
+    }
+    .aviso { color: #d4d5c8; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reinado de Mulambo</h1>
+    <p>Sistema administrativo • Painel de controle</p>
+  </header>
 
+  <main>
+    <div class="cards">
+      <div class="card">
+        <span>Total de consultas</span>
+        <h2 id="total">0</h2>
+      </div>
+      <div class="card">
+        <span>Em aberto</span>
+        <h2 id="abertas">0</h2>
+      </div>
+      <div class="card">
+        <span>Recebido</span>
+        <h2 id="recebido">R$ 0,00</h2>
+      </div>
+    </div>
+
+    <section>
+      <h3>Cadastrar consulta</h3>
+      <form id="formulario">
+        <label for="cliente">Nome do cliente</label>
+        <input id="cliente" required placeholder="Nome completo">
+
+        <label for="servico">Tipo de atendimento</label>
+        <select id="servico" required>
+          <option value="">Selecione</option>
+          <option>Pergunta Única</option>
+          <option>Jogo Rápido</option>
+          <option>Mesa Real</option>
+          <option>Verificação de Trabalho Espiritual</option>
+          <option>Outro</option>
+        </select>
+
+        <label for="valor">Valor (R$)</label>
+        <input id="valor" type="number" min="0" step="0.01"
+          required placeholder="0,00">
+
+        <label for="pagamento">Pagamento</label>
+        <select id="pagamento">
+          <option value="Pendente">Pendente</option>
+          <option value="Pago">Pago</option>
+        </select>
+
+        <label for="status">Situação do atendimento</label>
+        <select id="status">
+          <option>Pendente</option>
+          <option>Agendado</option>
+          <option>Concluído</option>
+          <option>Cancelado</option>
+        </select>
+
+        <button type="submit">Cadastrar consulta</button>
+      </form>
+    </section>
+
+    <section>
+      <h3>Consultas cadastradas</h3>
+      <div id="lista">Nenhuma consulta cadastrada.</div>
+      <p class="aviso">
+        Protótipo inicial. Os registros ficam neste navegador.
+        Ainda não há sincronização entre dispositivos.
+      </p>
+      <button id="exportar" type="button">Exportar cópia dos registros</button>
+    </section>
+  </main>
+
+  <script>
+    const chave = "reinadoConsultasV1";
+    let consultas = JSON.parse(localStorage.getItem(chave) || "[]");
+
+    const dinheiro = valor => Number(valor).toLocaleString("pt-BR", {
+      style: "currency", currency: "BRL"
+    });
+
+    function salvar() {
+      localStorage.setItem(chave, JSON.stringify(consultas));
+      atualizar();
+    }
+
+    function atualizar() {
+      document.getElementById("total").textContent = consultas.length;
+      document.getElementById("abertas").textContent =
+        consultas.filter(c => c.status === "Pendente" ||
+          c.status === "Agendado").length;
+
+      document.getElementById("recebido").textContent = dinheiro(
+        consultas.filter(c => c.pagamento === "Pago" &&
+          c.status !== "Cancelado")
+          .reduce((soma, c) => soma + c.valor, 0)
+      );
+
+      const lista = document.getElementById("lista");
+      lista.replaceChildren();
+
+      if (!consultas.length) {
+        lista.textContent = "Nenhuma consulta cadastrada.";
+        return;
+      }
+
+      consultas.forEach((c, i) => {
+        const item = document.createElement("div");
+        item.className = "consulta";
+        const titulo = document.createElement("strong");
+        titulo.textContent = c.cliente;
+        const detalhes = document.createElement("p");
+        detalhes.textContent = c.servico + " • " + dinheiro(c.valor) +
+          " • " + c.pagamento + " • " + c.status;
+        const excluir = document.createElement("button");
+        excluir.textContent = "Excluir registro";
+        excluir.onclick = () => {
+          if (confirm("Deseja excluir este registro?")) {
+            consultas.splice(i, 1);
+            salvar();
+          }
+        };
+        item.append(titulo, detalhes, excluir);
+        lista.append(item);
+      });
+    }
+
+    document.getElementById("formulario").addEventListener("submit", e => {
+      e.preventDefault();
+      consultas.push({
+        cliente: document.getElementById("cliente").value.trim(),
+        servico: document.getElementById("servico").value,
+        valor: Number(document.getElementById("valor").value),
+        pagamento: document.getElementById("pagamento").value,
+        status: document.getElementById("status").value
+      });
+      salvar();
+      e.target.reset();
+      alert("Consulta cadastrada!");
+    });
+
+    document.getElementById("exportar").onclick = () => {
+      const arquivo = new Blob(
+        [JSON.stringify(consultas, null, 2)],
+        { type: "application/json" }
+      );
+      const url = URL.createObjectURL(arquivo);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "consultas-reinado-de-mulambo.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+
+    atualizar();
+  </script>
+</body>
+</html>
