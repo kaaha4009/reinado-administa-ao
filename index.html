@@ -131,6 +131,9 @@
         Ainda não há sincronização entre dispositivos.
       </p>
       <button id="exportar" type="button">Exportar cópia dos registros</button>
+<label for="arquivoBackup">Restaurar cópia de segurança</label>
+<input id="arquivoBackup" type="file" accept=".json,application/json">
+<button id="restaurar" type="button">Restaurar backup</button>
     </section>
   </main>
 
@@ -215,7 +218,79 @@
       URL.revokeObjectURL(url);
     };
 
-    atualizar();
+  document.getElementById("restaurar").onclick = () => {
+  document.getElementById("arquivoBackup").click();
+};
+
+document.getElementById("arquivoBackup").addEventListener("change", async e => {
+  const arquivo = e.target.files[0];
+  if (!arquivo) return;
+
+  try {
+    const dados = JSON.parse(await arquivo.text());
+
+    const valido = Array.isArray(dados) && dados.every(c =>
+      c &&
+      typeof c.cliente === "string" &&
+      typeof c.servico === "string" &&
+      Number.isFinite(c.valor) &&
+      c.valor >= 0 &&
+      ["Pago", "Pendente"].includes(c.pagamento) &&
+      ["Pendente", "Agendado", "Concluído", "Cancelado"].includes(c.status)
+    );
+
+    if (!valido) {
+      alert("Arquivo inválido. Nenhum cadastro foi alterado.");
+      return;
+    }
+
+    if (!confirm("O backup substituirá os cadastros atuais. Deseja continuar?")) return;
+
+    consultas = dados;
+    salvar();
+    alert("Backup restaurado com sucesso!");
+  } catch {
+    alert("Não foi possível ler esse arquivo de backup.");
+  } finally {
+    e.target.value = "";
+  } document.getElementById("restaurar").onclick = () => {
+  document.getElementById("arquivoBackup").click();
+};
+
+document.getElementById("arquivoBackup").addEventListener("change", async e => {
+  const arquivo = e.target.files[0];
+  if (!arquivo) return;
+
+  try {
+    const dados = JSON.parse(await arquivo.text());
+
+    const valido = Array.isArray(dados) && dados.every(c =>
+      c &&
+      typeof c.cliente === "string" &&
+      typeof c.servico === "string" &&
+      Number.isFinite(c.valor) &&
+      c.valor >= 0 &&
+      ["Pago", "Pendente"].includes(c.pagamento) &&
+      ["Pendente", "Agendado", "Concluído", "Cancelado"].includes(c.status)
+    );
+
+    if (!valido) {
+      alert("Arquivo inválido. Nenhum cadastro foi alterado.");
+      return;
+    }
+
+    if (!confirm("O backup substituirá os cadastros atuais. Deseja continuar?")) return;
+
+    consultas = dados;
+    salvar();
+    alert("Backup restaurado com sucesso!");
+  } catch {
+    alert("Não foi possível ler esse arquivo de backup.");
+  } finally {
+    e.target.value = "";
+  }
+});
+});  atualizar();
   </script>
 </body>
 </html>
